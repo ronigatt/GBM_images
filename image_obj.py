@@ -1,7 +1,7 @@
 import cv2
 import tifffile as tiff
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -17,6 +17,7 @@ class ImageObj:
         self.red_channel = self.get_image(images_path[1])
         self.tumor_location = None
         self.bbbd_location = None
+        self.max_val = 65535
 
     @staticmethod
     def get_images_path(directory_location: Path, image_name: str) -> list:
@@ -49,8 +50,21 @@ class ImageObj:
         #plt.show()
         return image
 
-    def find_tumor(self):
-        pass
+    def find_roi(self, tumor=False, bbbd=False):
+        """
+        find roi in image
+        tumor: bool
+        bbdd: bool
+        """
+        image = self.green_channel if tumor or not bbbd else self.red_channel
+        # convert the image to binary image
+        _, image = cv2.threshold(image, 0.1*self.max_val, self.max_val, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        denoised = cv2.morphologyEx(np.uint8(image), cv2.MORPH_CLOSE, np.ones((21, 21), np.uint8), iterations=13)
+        if tumor:
+            self.tumor_location = denoised < 255
+        if bbbd:
+            self.bbbd_location = denoised < 255
+
 
 
 
